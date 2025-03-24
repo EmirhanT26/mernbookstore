@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitaplar</title>
+</head>
+<body>
+    <h1>Kitap Listesi</h1>
+    <div id="book-list"></div>
+
+    <h2>Kitap Ekle</h2>
+    <form id="add-book-form">
+        <input type="text" id="name" placeholder="Kitap Adı" required />
+        <input type="text" id="author" placeholder="Yazar Adı" required />
+        <input type="text" id="genre" placeholder="Tür" required />
+        <input type="number" id="price" placeholder="Fiyat" required />
+        <input type="text" id="image" placeholder="Resim URL'si" required />
+        <button type="submit">Kitap Ekle</button>
+    </form>
+
+    <script>
+        // Kitapları alıp ekrana yazdıran fonksiyon
+        function loadBooks() {
+            fetch('http://localhost:5000/api/books')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const bookList = document.getElementById('book-list');
+                        bookList.innerHTML = ''; // Önceden eklenen kitapları temizle
+                        data.data.forEach(book => {
+                            const bookElement = document.createElement('div');
+                            bookElement.innerHTML = `
+                                <h3>${book.name}</h3>
+                                <p>Yazar: ${book.author}</p>
+                                <p>Tür: ${book.genre}</p>
+                                <p>Fiyat: ${book.price} TL</p>
+                                <img src="${book.image}" alt="${book.name}" style="width: 200px;">
+                                <button onclick="deleteBook('${book._id}')">Sil</button>
+                                <button onclick="editBook('${book._id}', '${book.name}', '${book.author}', '${book.genre}', '${book.price}', '${book.image}')">Güncelle</button>
+                            `;
+                            bookList.appendChild(bookElement);
+                        });
+                    }
+                })
+                .catch(error => console.error('Hata:', error));
+        }
+
+        // Kitap ekleme fonksiyonu
+        document.getElementById('add-book-form').addEventListener('submit', function (e) {
+            e.preventDefault(); // Formun sayfa yenilemesini engelle
+
+            const bookData = {
+                name: document.getElementById('name').value,
+                author: document.getElementById('author').value,
+                genre: document.getElementById('genre').value,
+                price: document.getElementById('price').value,
+                image: document.getElementById('image').value
+            };
+
+            fetch('http://localhost:5000/api/books', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Kitap başarıyla eklendi!');
+                    loadBooks();  // Kitapları tekrar yükle
+                } else {
+                    alert('Kitap eklenirken bir hata oluştu!');
+                }
+            })
+            .catch(error => console.error('Hata:', error));
+        });
+
+        // Kitap silme fonksiyonu
+        function deleteBook(id) {
+            fetch(`http://localhost:5000/api/books/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Kitap başarıyla silindi!');
+                    loadBooks();  // Kitapları tekrar yükle
+                } else {
+                    alert('Kitap silinirken bir hata oluştu!');
+                }
+            })
+            .catch(error => console.error('Hata:', error));
+        }
+
+        // Kitap güncelleme fonksiyonu
+        function editBook(id, name, author, genre, price, image) {
+            const newName = prompt("Yeni Kitap Adı", name);
+            const newAuthor = prompt("Yeni Yazar Adı", author);
+            const newGenre = prompt("Yeni Tür", genre);
+            const newPrice = prompt("Yeni Fiyat", price);
+            const newImage = prompt("Yeni Resim URL'si", image);
+
+            const updatedBook = {
+                name: newName,
+                author: newAuthor,
+                genre: newGenre,
+                price: newPrice,
+                image: newImage
+            };
+
+            fetch(`http://localhost:5000/api/books/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedBook)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Kitap başarıyla güncellendi!');
+                    loadBooks();  // Kitapları tekrar yükle
+                } else {
+                    alert('Kitap güncellenirken bir hata oluştu!');
+                }
+            })
+            .catch(error => console.error('Hata:', error));
+        }
+
+        // Sayfa yüklendiğinde kitapları getir
+        loadBooks();
+    </script>
+</body>
+</html>
