@@ -1,50 +1,50 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';  // CORS ekledik (Frontend bağlanabilsin)
 import { connectDB } from './config/db.js';
-import Book from './models/book.model.js';  // Kitap modelini ekliyoruz
+import Book from './models/book.model.js';  
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
+connectDB(); // MongoDB'ye bağlan
 
 const app = express();
 app.use(express.json());
+app.use(cors()); // CORS Middleware ekleyerek frontend'in erişmesini sağladık
 
-// Kitapları getiren endpoint
+// 📌 Kitapları GET ile çek
 app.get("/api/books", async (req, res) => {
     try {
         const books = await Book.find({});
         res.status(200).json({ success: true, data: books });
     } catch (error) {
-        console.log("Error in Fetching books, ", error.message);
-        res.status(500).json({ success: false, message: "Server Error" });
+        console.error("Kitapları çekerken hata:", error.message);
+        res.status(500).json({ success: false, message: "Sunucu hatası" });
     }
 });
 
-// Kitap eklemek için endpoint
+// 📌 Yeni kitap ekleme (POST)
 app.post("/api/books", async (req, res) => {
     const { name, author, genre, price, image } = req.body;
-
     if (!name || !author || !genre || !price || !image) {
         return res.status(400).json({ message: "Lütfen tüm alanları doldurun." });
     }
 
-    const newBook = new Book({ name, author, genre, price, image });
-
     try {
+        const newBook = new Book({ name, author, genre, price, image });
         await newBook.save();
         res.status(201).json({ success: true, data: newBook });
     } catch (error) {
-        console.error("Kitap oluşturulurken hata:", error.message);
+        console.error("Kitap eklenirken hata:", error.message);
         res.status(500).json({ message: "Sunucu hatası" });
     }
 });
 
-// Kitap güncellemek için endpoint
+// 📌 Kitap güncelleme (PUT)
 app.put("/api/books/:id", async (req, res) => {
     const { id } = req.params;
     const { name, author, genre, price, image } = req.body;
-
     if (!name || !author || !genre || !price || !image) {
         return res.status(400).json({ message: "Lütfen tüm alanları doldurun." });
     }
@@ -61,10 +61,9 @@ app.put("/api/books/:id", async (req, res) => {
     }
 });
 
-// Kitap silme endpoint'i
+// 📌 Kitap silme (DELETE)
 app.delete("/api/books/:id", async (req, res) => {
     const { id } = req.params;
-
     try {
         const deletedBook = await Book.findByIdAndDelete(id);
         if (!deletedBook) {
@@ -77,20 +76,21 @@ app.delete("/api/books/:id", async (req, res) => {
     }
 });
 
-
-// __dirname'i çözümlemek için fileURLToPath ve import.meta.url kullanıyoruz
+// 📌 __dirname için ayarlama (Render için gerekli)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Frontend klasörünü statik olarak sunmak
+// 📌 Frontend klasörünü Render için sun (Statik Dosyalar)
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Ana sayfa isteğine (/) yanıt olarak index.html dosyasını sunuyoruz
+// 📌 Ana sayfayı frontend'e yönlendir
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
 });
 
-app.listen(5000, () => {
-    connectDB();
-    console.log("Server started at http://localhost:5000");
+// 📌 PORT Ayarı (Render için GEREKLİ)
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+    console.log(`✅ Server started on PORT: ${PORT}`);
 });
